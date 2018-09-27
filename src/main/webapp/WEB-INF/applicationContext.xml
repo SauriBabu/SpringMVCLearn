@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+	<context:component-scan base-package="com.services" ></context:component-scan>
+	<context:component-scan base-package="com.repository"></context:component-scan>
+	<context:component-scan base-package="com.ws"></context:component-scan>
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource" >
+		<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+		<property name="url" value="jdbc:mysql://localhost:3306/SpringDB"> </property>
+		<property name="username" value="root"></property>
+		<property name="password" value="root"></property>
+	</bean>
+	
+	<!-- <bean id="homeController" name = "homeController" class="com.controllers.HomeController"></bean> -->
+	
+	<bean id="jdbctemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+<!-- 	<bean id= "accountServiceImpl" class="com.services.AccountServiceImpl"></bean>
+ -->
+	<tx:annotation-driven transaction-manager="txManager"/>
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<tx:advice transaction-manager="txManager" id="txAdvice">
+		<tx:attributes>
+			<tx:method name="deposit" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			
+			<tx:method name="withdraw" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+		
+			<tx:method name="transfer" propagation="REQUIRED" rollback-for="java.lang.Exception"/>
+			
+			<tx:method name="set*" propagation="SUPPORTS" rollback-for="java.lang.Exception"/>
+		
+		
+		</tx:attributes>
+	
+	</tx:advice>
+		
+	<aop:config>
+		<aop:advisor advice-ref="txAdvice" pointcut="@within(org.springframework.stereotype.Service) or @within(org.springframework.stereotype.Repository)" />
+	</aop:config>
+		
+	<bean id="rmiExporter" class="org.springframework.remoting.rmi.RmiServiceExporter">
+		<property name="serviceName" value="accountService"></property>
+		<property name="registryPort" value="1199"></property>
+		<property name="service" ref="accountServiceImpl"></property>
+		<property name="serviceInterface" value="com.services.AccountService"></property>
+		
+	</bean>
+	
+	<bean id="httpExporter" class="org.springframework.remoting.httpinvoker.HttpInvokerServiceExporter">
+		<property name="service" ref="accountServiceImpl"></property>
+		<property name="serviceInterface" value="com.services.AccountService"></property>
+	
+	</bean>
+	
+	<bean id="jaxwsExporter" class="org.springframework.remoting.jaxws.SimpleJaxWsServiceExporter">
+		<property name="baseAddress" value="http://localhost:9080/"></property>
+	</bean>
+</beans>
